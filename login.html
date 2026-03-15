@@ -9,7 +9,7 @@
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'Outfit',sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
   .box{background:#161b22;border:1px solid #30363d;border-radius:20px;padding:44px 36px;width:100%;max-width:400px;box-shadow:0 8px 48px rgba(0,0,0,.6);}
-  .logo{font-family:'Syne',sans-serif;font-size:2.4rem;font-weight:800;background:linear-gradient(135deg,#f78166,#e3b341);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;margin-bottom:4px;text-align:center;}
+  .logo{font-family:'Syne',sans-serif;font-size:clamp(1.4rem,6vw,2rem);font-weight:800;background:linear-gradient(135deg,#f78166,#e3b341);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.2;margin-bottom:4px;text-align:center;white-space:nowrap;}
   .company{font-size:.68rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#8b949e;margin-bottom:4px;text-align:center;}
   .sub{font-size:.74rem;color:#8b949e;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:36px;text-align:center;}
   .field{margin-bottom:18px;}
@@ -18,67 +18,135 @@
   input{width:100%;padding:11px 14px;background:#1c2333;border:1.5px solid #30363d;border-radius:8px;color:#e6edf3;font-family:'Outfit',sans-serif;font-size:.95rem;outline:none;transition:.15s;}
   input:focus{border-color:#f78166;background:#0d1117;}
   input::placeholder{color:#8b949e;opacity:.5;}
-  /* password field needs right padding for the eye icon */
-  #password{padding-right:46px;}
-  .eye-btn{position:absolute;right:12px;background:none;border:none;cursor:pointer;color:#8b949e;font-size:1.1rem;padding:4px;display:flex;align-items:center;transition:.15s;user-select:none;}
+  .has-eye{padding-right:46px;}
+  .eye-btn{position:absolute;right:12px;background:none;border:none;cursor:pointer;color:#8b949e;padding:4px;display:flex;align-items:center;transition:.15s;}
   .eye-btn:hover{color:#e6edf3;}
   .btn{width:100%;padding:14px;background:linear-gradient(135deg,#f78166,#ff9f6b);color:#0d1117;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;letter-spacing:1px;cursor:pointer;box-shadow:0 4px 24px rgba(247,129,102,.35);transition:.2s;margin-top:8px;}
-  .btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(247,129,102,.5);}
-  .btn:active{transform:translateY(0);}
+  .btn:hover{transform:translateY(-2px);}
   .btn:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+  .btn-blue{width:100%;padding:12px;background:rgba(88,166,255,.1);color:#58a6ff;border:1.5px solid #58a6ff;border-radius:10px;font-family:'Syne',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;transition:.2s;margin-top:10px;}
+  .btn-blue:hover{background:#58a6ff;color:#0d1117;}
+  .btn-ghost{width:100%;padding:11px;background:transparent;color:#8b949e;border:1.5px solid #30363d;border-radius:10px;font-family:'Syne',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;transition:.2s;margin-top:8px;}
+  .btn-ghost:hover{border-color:#8b949e;color:#e6edf3;}
   .err{color:#f85149;font-size:.82rem;margin-top:14px;background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);border-radius:8px;padding:10px 14px;display:none;text-align:center;}
+  .suc{color:#3fb950;font-size:.82rem;margin-top:14px;background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.3);border-radius:8px;padding:10px 14px;display:none;text-align:center;}
   .loading{color:#8b949e;font-size:.82rem;margin-top:14px;text-align:center;display:none;}
-  .divider{height:1px;background:#30363d;margin:28px 0;}
+  .divider{height:1px;background:#30363d;margin:22px 0;}
   .hint{font-size:.75rem;color:#8b949e;text-align:center;}
+  .panel{display:none;}
+  .panel.active{display:block;}
+  .panel-title{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:10px;}
+  .back-btn{background:none;border:none;color:#8b949e;cursor:pointer;font-size:.8rem;padding:4px 8px;border-radius:6px;border:1px solid #30363d;transition:.15s;}
+  .back-btn:hover{color:#e6edf3;border-color:#e6edf3;}
+  .section-tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:16px;}
+  .tag-email{background:rgba(88,166,255,.15);color:#58a6ff;border:1px solid rgba(88,166,255,.3);}
+  .tag-pwd{background:rgba(188,140,255,.15);color:#bc8cff;border:1px solid rgba(188,140,255,.3);}
 </style>
 </head>
 <body>
 <div class="box">
-  <div class="logo">WorkTrack</div>
-  <div class="company">Varun Industries</div>
-  <div class="sub">Admin Login</div>
 
-  <!-- Email -->
-  <div class="field">
-    <label for="email">Email Address</label>
-    <div class="input-wrap">
-      <input type="email" id="email" placeholder="admin@varun.com" autocomplete="email">
+  <!-- ── LOGIN PANEL ── -->
+  <div class="panel active" id="panel-login">
+    <div class="logo">WorkTrack</div>
+    <div class="company">Varun Industries</div>
+    <div class="sub">Admin Login</div>
+
+    <div class="field">
+      <label for="email">Email Address</label>
+      <div class="input-wrap">
+        <input type="email" id="email" placeholder="admin@varun.com" autocomplete="email">
+      </div>
     </div>
+
+    <div class="field">
+      <label for="password">Password</label>
+      <div class="input-wrap">
+        <input type="password" id="password" class="has-eye" placeholder="Enter your password" autocomplete="current-password">
+        <button class="eye-btn" id="eye-login" type="button">
+          <svg id="eye-show-login" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg id="eye-hide-login" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <button class="btn" id="login-btn">Login →</button>
+    <button class="btn-blue" id="go-change-btn">⚙ Change Email / Password</button>
+
+    <div class="err" id="login-err">❌ Wrong email or password. Please try again.</div>
+    <div class="loading" id="login-loading">⏳ Logging in...</div>
+    <div class="divider"></div>
+    <div class="hint">Only authorized admin can access this system.</div>
   </div>
 
-  <!-- Password with show/hide -->
-  <div class="field">
-    <label for="password">Password</label>
-    <div class="input-wrap">
-      <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password">
-      <button class="eye-btn" id="eye-btn" type="button" title="Show / Hide password">
-        <!-- Eye open icon (password hidden) -->
-        <svg id="icon-show" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-          <circle cx="12" cy="12" r="3"></circle>
-        </svg>
-        <!-- Eye closed icon (password visible) -->
-        <svg id="icon-hide" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
-          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path>
-          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path>
-          <line x1="1" y1="1" x2="23" y2="23"></line>
-        </svg>
-      </button>
+  <!-- ── CHANGE EMAIL / PASSWORD PANEL ── -->
+  <div class="panel" id="panel-change">
+    <div class="panel-title">
+      <button class="back-btn" id="back-btn">← Back</button>
+      Change Credentials
     </div>
+
+    <!-- Current login to verify -->
+    <div class="field">
+      <label>Current Email</label>
+      <input type="email" id="cur-email" placeholder="Your current email">
+    </div>
+    <div class="field">
+      <label>Current Password</label>
+      <div class="input-wrap">
+        <input type="password" id="cur-password" class="has-eye" placeholder="Your current password">
+        <button class="eye-btn" id="eye-cur" type="button">
+          <svg id="eye-show-cur" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg id="eye-hide-cur" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- New Email section -->
+    <div class="section-tag tag-email">📧 New Email (optional)</div>
+    <div class="field">
+      <label>New Email Address</label>
+      <input type="email" id="new-email" placeholder="Leave blank to keep current">
+    </div>
+
+    <!-- New Password section -->
+    <div class="section-tag tag-pwd">🔑 New Password (optional)</div>
+    <div class="field">
+      <label>New Password</label>
+      <div class="input-wrap">
+        <input type="password" id="new-password" class="has-eye" placeholder="Leave blank to keep current">
+        <button class="eye-btn" id="eye-new" type="button">
+          <svg id="eye-show-new" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg id="eye-hide-new" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Confirm New Password</label>
+      <div class="input-wrap">
+        <input type="password" id="confirm-password" class="has-eye" placeholder="Re-enter new password">
+        <button class="eye-btn" id="eye-confirm" type="button">
+          <svg id="eye-show-confirm" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg id="eye-hide-confirm" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <button class="btn" id="save-change-btn">✓ Save Changes</button>
+    <button class="btn-ghost" id="cancel-change-btn">Cancel</button>
+
+    <div class="err" id="change-err"></div>
+    <div class="suc" id="change-suc"></div>
+    <div class="loading" id="change-loading">⏳ Updating credentials...</div>
   </div>
 
-  <button class="btn" id="login-btn">Login →</button>
-
-  <div class="err" id="err">❌ Wrong email or password. Please try again.</div>
-  <div class="loading" id="loading">⏳ Logging in...</div>
-
-  <div class="divider"></div>
-  <div class="hint">Only authorized admin can access this system.</div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDgFIkSHPJVdI5WXQzPUeDNAQpvQtP0Bsg",
@@ -92,56 +160,152 @@ const firebaseConfig = {
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-/* ── Show / Hide password toggle ── */
-const pwdInput  = document.getElementById('password');
-const eyeBtn    = document.getElementById('eye-btn');
-const iconShow  = document.getElementById('icon-show');
-const iconHide  = document.getElementById('icon-hide');
+/* ── Panel switch ── */
+function showPanel(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
 
-eyeBtn.addEventListener('click', () => {
-  const isHidden = pwdInput.type === 'password';
-  pwdInput.type   = isHidden ? 'text' : 'password';
-  iconShow.style.display = isHidden ? 'none'  : 'block';
-  iconHide.style.display = isHidden ? 'block' : 'none';
-  pwdInput.focus();
-});
+document.getElementById('go-change-btn').onclick  = () => showPanel('panel-change');
+document.getElementById('back-btn').onclick        = () => showPanel('panel-login');
+document.getElementById('cancel-change-btn').onclick = () => showPanel('panel-login');
+
+/* ── Eye toggle helper ── */
+function eyeToggle(inputId, showId, hideId){
+  const input = document.getElementById(inputId);
+  const show  = document.getElementById(showId);
+  const hide  = document.getElementById(hideId);
+  const isHidden = input.type === 'password';
+  input.type = isHidden ? 'text' : 'password';
+  show.style.display = isHidden ? 'none'  : 'block';
+  hide.style.display = isHidden ? 'block' : 'none';
+  input.focus();
+}
+
+document.getElementById('eye-login').onclick   = () => eyeToggle('password',    'eye-show-login',   'eye-hide-login');
+document.getElementById('eye-cur').onclick     = () => eyeToggle('cur-password', 'eye-show-cur',     'eye-hide-cur');
+document.getElementById('eye-new').onclick     = () => eyeToggle('new-password', 'eye-show-new',     'eye-hide-new');
+document.getElementById('eye-confirm').onclick = () => eyeToggle('confirm-password','eye-show-confirm','eye-hide-confirm');
 
 /* ── Login ── */
-async function login() {
+async function login(){
   const email    = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
-  const errEl    = document.getElementById('err');
-  const loadEl   = document.getElementById('loading');
+  const errEl    = document.getElementById('login-err');
+  const loadEl   = document.getElementById('login-loading');
   const btnEl    = document.getElementById('login-btn');
 
-  if(!email || !password) {
-    errEl.textContent = '❌ Please enter both email and password.';
-    errEl.style.display = 'block';
-    return;
+  if(!email || !password){
+    errEl.textContent='❌ Please enter both email and password.';
+    errEl.style.display='block'; return;
   }
-
-  errEl.style.display  = 'none';
-  loadEl.style.display = 'block';
-  btnEl.disabled       = true;
+  errEl.style.display='none';
+  loadEl.style.display='block';
+  btnEl.disabled=true;
 
   try {
     await signInWithEmailAndPassword(auth, email, password);
     window.location.href = 'index.html';
   } catch(e) {
-    loadEl.style.display = 'none';
-    btnEl.disabled       = false;
-    errEl.textContent    = '❌ Wrong email or password. Please try again.';
-    errEl.style.display  = 'block';
+    loadEl.style.display='none';
+    btnEl.disabled=false;
+    errEl.textContent='❌ Wrong email or password. Please try again.';
+    errEl.style.display='block';
   }
 }
 
-/* ── Click button ── */
-document.getElementById('login-btn').addEventListener('click', login);
-
-/* ── Press Enter to login ── */
+document.getElementById('login-btn').onclick = login;
 document.addEventListener('keydown', e => {
-  if(e.key === 'Enter') login();
+  if(e.key==='Enter'){
+    const active = document.querySelector('.panel.active').id;
+    if(active==='panel-login') login();
+  }
 });
+
+/* ── Change Email / Password ── */
+document.getElementById('save-change-btn').onclick = async function(){
+  const curEmail   = document.getElementById('cur-email').value.trim();
+  const curPwd     = document.getElementById('cur-password').value;
+  const newEmail   = document.getElementById('new-email').value.trim();
+  const newPwd     = document.getElementById('new-password').value;
+  const confirmPwd = document.getElementById('confirm-password').value;
+
+  const errEl  = document.getElementById('change-err');
+  const sucEl  = document.getElementById('change-suc');
+  const loadEl = document.getElementById('change-loading');
+  const btnEl  = document.getElementById('save-change-btn');
+
+  errEl.style.display='none';
+  sucEl.style.display='none';
+
+  // Validations
+  if(!curEmail || !curPwd){
+    errEl.textContent='❌ Please enter your current email and password.';
+    errEl.style.display='block'; return;
+  }
+  if(!newEmail && !newPwd){
+    errEl.textContent='❌ Please enter a new email or new password (or both).';
+    errEl.style.display='block'; return;
+  }
+  if(newPwd && newPwd !== confirmPwd){
+    errEl.textContent='❌ New passwords do not match.';
+    errEl.style.display='block'; return;
+  }
+  if(newPwd && newPwd.length < 6){
+    errEl.textContent='❌ New password must be at least 6 characters.';
+    errEl.style.display='block'; return;
+  }
+
+  loadEl.style.display='block';
+  btnEl.disabled=true;
+
+  try {
+    // Step 1: Sign in with current credentials to verify
+    const userCred = await signInWithEmailAndPassword(auth, curEmail, curPwd);
+    const user = userCred.user;
+
+    // Re-authenticate (required by Firebase before sensitive changes)
+    const credential = EmailAuthProvider.credential(curEmail, curPwd);
+    await reauthenticateWithCredential(user, credential);
+
+    // Step 2: Update email if provided
+    if(newEmail && newEmail !== curEmail){
+      await updateEmail(user, newEmail);
+    }
+
+    // Step 3: Update password if provided
+    if(newPwd){
+      await updatePassword(user, newPwd);
+    }
+
+    loadEl.style.display='none';
+    btnEl.disabled=false;
+    sucEl.textContent='✅ Credentials updated successfully! Please login again with your new details.';
+    sucEl.style.display='block';
+
+    // Clear all fields
+    ['cur-email','cur-password','new-email','new-password','confirm-password'].forEach(id=>{
+      document.getElementById(id).value='';
+    });
+
+    // Go back to login after 2.5 seconds
+    setTimeout(()=> showPanel('panel-login'), 2500);
+
+  } catch(e) {
+    loadEl.style.display='none';
+    btnEl.disabled=false;
+    if(e.code==='auth/wrong-password' || e.code==='auth/user-not-found' || e.code==='auth/invalid-credential'){
+      errEl.textContent='❌ Current email or password is wrong.';
+    } else if(e.code==='auth/email-already-in-use'){
+      errEl.textContent='❌ That email is already in use by another account.';
+    } else if(e.code==='auth/invalid-email'){
+      errEl.textContent='❌ Invalid email format.';
+    } else {
+      errEl.textContent='❌ Something went wrong. Please try again.';
+    }
+    errEl.style.display='block';
+  }
+};
 </script>
 </body>
 </html>
