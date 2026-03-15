@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login – Varun Industries</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Outfit',sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .box{background:#161b22;border:1px solid #30363d;border-radius:20px;padding:44px 36px;width:100%;max-width:400px;box-shadow:0 8px 48px rgba(0,0,0,.6);}
+  .logo{font-family:'Syne',sans-serif;font-size:2.4rem;font-weight:800;background:linear-gradient(135deg,#f78166,#e3b341);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;margin-bottom:4px;text-align:center;}
+  .company{font-size:.68rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#8b949e;margin-bottom:4px;text-align:center;}
+  .sub{font-size:.74rem;color:#8b949e;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:36px;text-align:center;}
+  .field{margin-bottom:18px;}
+  label{display:block;font-size:.68rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#8b949e;margin-bottom:7px;}
+  .input-wrap{position:relative;display:flex;align-items:center;}
+  input{width:100%;padding:11px 14px;background:#1c2333;border:1.5px solid #30363d;border-radius:8px;color:#e6edf3;font-family:'Outfit',sans-serif;font-size:.95rem;outline:none;transition:.15s;}
+  input:focus{border-color:#f78166;background:#0d1117;}
+  input::placeholder{color:#8b949e;opacity:.5;}
+  /* password field needs right padding for the eye icon */
+  #password{padding-right:46px;}
+  .eye-btn{position:absolute;right:12px;background:none;border:none;cursor:pointer;color:#8b949e;font-size:1.1rem;padding:4px;display:flex;align-items:center;transition:.15s;user-select:none;}
+  .eye-btn:hover{color:#e6edf3;}
+  .btn{width:100%;padding:14px;background:linear-gradient(135deg,#f78166,#ff9f6b);color:#0d1117;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;letter-spacing:1px;cursor:pointer;box-shadow:0 4px 24px rgba(247,129,102,.35);transition:.2s;margin-top:8px;}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(247,129,102,.5);}
+  .btn:active{transform:translateY(0);}
+  .btn:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+  .err{color:#f85149;font-size:.82rem;margin-top:14px;background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);border-radius:8px;padding:10px 14px;display:none;text-align:center;}
+  .loading{color:#8b949e;font-size:.82rem;margin-top:14px;text-align:center;display:none;}
+  .divider{height:1px;background:#30363d;margin:28px 0;}
+  .hint{font-size:.75rem;color:#8b949e;text-align:center;}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="logo">WorkTrack</div>
+  <div class="company">Varun Industries</div>
+  <div class="sub">Admin Login</div>
+
+  <!-- Email -->
+  <div class="field">
+    <label for="email">Email Address</label>
+    <div class="input-wrap">
+      <input type="email" id="email" placeholder="admin@varun.com" autocomplete="email">
+    </div>
+  </div>
+
+  <!-- Password with show/hide -->
+  <div class="field">
+    <label for="password">Password</label>
+    <div class="input-wrap">
+      <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password">
+      <button class="eye-btn" id="eye-btn" type="button" title="Show / Hide password">
+        <!-- Eye open icon (password hidden) -->
+        <svg id="icon-show" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+        <!-- Eye closed icon (password visible) -->
+        <svg id="icon-hide" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path>
+          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path>
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <button class="btn" id="login-btn">Login →</button>
+
+  <div class="err" id="err">❌ Wrong email or password. Please try again.</div>
+  <div class="loading" id="loading">⏳ Logging in...</div>
+
+  <div class="divider"></div>
+  <div class="hint">Only authorized admin can access this system.</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDgFIkSHPJVdI5WXQzPUeDNAQpvQtP0Bsg",
+  authDomain: "varunworktrack.firebaseapp.com",
+  projectId: "varunworktrack",
+  storageBucket: "varunworktrack.firebasestorage.app",
+  messagingSenderId: "660423634322",
+  appId: "1:660423634322:web:115d5e026d534c2a9ea54b"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+/* ── Show / Hide password toggle ── */
+const pwdInput  = document.getElementById('password');
+const eyeBtn    = document.getElementById('eye-btn');
+const iconShow  = document.getElementById('icon-show');
+const iconHide  = document.getElementById('icon-hide');
+
+eyeBtn.addEventListener('click', () => {
+  const isHidden = pwdInput.type === 'password';
+  pwdInput.type   = isHidden ? 'text' : 'password';
+  iconShow.style.display = isHidden ? 'none'  : 'block';
+  iconHide.style.display = isHidden ? 'block' : 'none';
+  pwdInput.focus();
+});
+
+/* ── Login ── */
+async function login() {
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const errEl    = document.getElementById('err');
+  const loadEl   = document.getElementById('loading');
+  const btnEl    = document.getElementById('login-btn');
+
+  if(!email || !password) {
+    errEl.textContent = '❌ Please enter both email and password.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  errEl.style.display  = 'none';
+  loadEl.style.display = 'block';
+  btnEl.disabled       = true;
+
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    window.location.href = 'index.html';
+  } catch(e) {
+    loadEl.style.display = 'none';
+    btnEl.disabled       = false;
+    errEl.textContent    = '❌ Wrong email or password. Please try again.';
+    errEl.style.display  = 'block';
+  }
+}
+
+/* ── Click button ── */
+document.getElementById('login-btn').addEventListener('click', login);
+
+/* ── Press Enter to login ── */
+document.addEventListener('keydown', e => {
+  if(e.key === 'Enter') login();
+});
+</script>
+</body>
+</html>

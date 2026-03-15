@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Save History – WorkTrack</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#1c2333;--bg4:#21262d;
+  --border:#30363d;--b2:#21262d;
+  --text:#e6edf3;--muted:#8b949e;
+  --accent:#f78166;--a2:#ff9f6b;
+  --green:#3fb950;--gold:#e3b341;
+  --blue:#58a6ff;--purple:#bc8cff;--red:#f85149;
+  --r:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+/* TOPBAR */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:13px 22px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:300;}
+.tblogo{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.tbsep{width:1px;height:24px;background:var(--border);}
+.tbinfo{font-size:.75rem;color:var(--muted);}
+.tbacts{margin-left:auto;display:flex;gap:8px;}
+.tbtn{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);font-family:'Outfit',sans-serif;font-size:.78rem;cursor:pointer;transition:.15s;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;}
+.tbtn:hover{border-color:var(--text);color:var(--text);}
+.tbtn.red{background:rgba(248,81,73,.12);border-color:var(--red);color:var(--red);}
+.tbtn.red:hover{background:var(--red);color:#fff;}
+
+/* PAGE */
+.page{padding:24px;max-width:1100px;margin:0 auto;}
+.page-title{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;margin-bottom:6px;}
+.page-sub{font-size:.78rem;color:var(--muted);margin-bottom:28px;}
+
+/* EMPTY STATE */
+.empty{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:60px 24px;text-align:center;color:var(--muted);}
+.empty-icon{font-size:3rem;margin-bottom:14px;}
+.empty-title{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:8px;}
+
+/* SAVE CARDS */
+.saves-list{display:flex;flex-direction:column;gap:14px;}
+.save-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;transition:.15s;}
+.save-card:hover{border-color:var(--blue);}
+.save-hdr{background:var(--bg3);padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;border-bottom:1px solid var(--border);}
+.save-num{background:linear-gradient(135deg,var(--accent),var(--a2));color:#0d1117;font-family:'Syne',sans-serif;font-size:.72rem;font-weight:700;padding:3px 12px;border-radius:20px;white-space:nowrap;}
+.save-date{font-family:'Syne',sans-serif;font-size:.92rem;font-weight:700;}
+.save-time{font-size:.76rem;color:var(--muted);}
+.save-meta{font-size:.74rem;color:var(--muted);margin-left:auto;}
+.save-btns{display:flex;gap:8px;margin-left:auto;}
+.btn-view{padding:7px 16px;border-radius:7px;border:1px solid var(--blue);background:rgba(88,166,255,.1);color:var(--blue);font-family:'Outfit',sans-serif;font-size:.76rem;cursor:pointer;transition:.15s;}
+.btn-view:hover{background:var(--blue);color:#0d1117;}
+.btn-del{padding:7px 16px;border-radius:7px;border:1px solid var(--red);background:rgba(248,81,73,.1);color:var(--red);font-family:'Outfit',sans-serif;font-size:.76rem;cursor:pointer;transition:.15s;}
+.btn-del:hover{background:var(--red);color:#fff;}
+
+/* DETAIL PANEL */
+.save-detail{display:none;padding:18px;}
+.save-detail.open{display:block;}
+.detail-emp{background:var(--bg3);border:1px solid var(--b2);border-radius:10px;padding:16px;margin-bottom:12px;}
+.detail-emp:last-child{margin-bottom:0;}
+.detail-name{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:10px;}
+.detail-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--a2));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:.8rem;font-weight:700;color:#0d1117;flex-shrink:0;}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
+.detail-stat{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 13px;}
+.ds-lbl{font-size:.64rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+.ds-val{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700;}
+.ds-val.gr{color:var(--green);}
+.ds-val.bl{color:var(--blue);}
+.ds-val.pu{color:var(--purple);}
+.ds-val.go{color:var(--gold);}
+
+/* GRAND TOTAL ROW */
+.grand-total{background:rgba(247,129,102,.07);border:1px solid var(--accent);border-radius:10px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;}
+.gt-label{font-family:'Syne',sans-serif;font-size:.82rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);}
+.gt-val{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--green);}
+.gt-meta{font-size:.74rem;color:var(--muted);}
+
+/* CONFIRM MODAL */
+.modalbg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:999;align-items:center;justify-content:center;padding:20px;}
+.modalbg.open{display:flex;}
+.modalbox{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.6);animation:pop .2s ease;text-align:center;}
+@keyframes pop{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-icon{font-size:2.5rem;margin-bottom:12px;}
+.modal-title{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:8px;}
+.modal-sub{font-size:.8rem;color:var(--muted);margin-bottom:24px;}
+.modal-btns{display:flex;gap:10px;}
+.mbcancel{flex:1;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);font-family:'Syne',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;}
+.mbcancel:hover{color:var(--text);border-color:var(--text);}
+.mbdel{flex:1;padding:12px;border-radius:8px;border:none;background:var(--red);color:#fff;font-family:'Syne',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;}
+.mbdel:hover{background:#d73a3a;}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--green);color:#fff;padding:10px 20px;border-radius:8px;font-size:.82rem;font-weight:600;box-shadow:0 4px 20px rgba(63,185,80,.4);z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;}
+.toast.show{opacity:1;}
+
+/* LOADING */
+.loading{text-align:center;padding:60px;color:var(--muted);font-size:.9rem;}
+
+@media(max-width:600px){
+  .save-hdr{gap:8px;}
+  .save-btns{width:100%;}
+  .btn-view,.btn-del{flex:1;text-align:center;}
+  .detail-grid{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="tblogo">WorkTrack</span>
+  <span style="font-size:.68rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-left:8px;">VARUN INDUSTRIES</span>
+  <div class="tbsep"></div>
+  <div class="tbinfo">📋 Save History</div>
+  <div class="tbacts">
+    <a class="tbtn" href="index.html">← Back to Tracker</a>
+  </div>
+</div>
+
+<div class="page">
+  <div class="page-title">Save History</div>
+  <div class="page-sub">All saved weekly salary records. Click View to see details, Delete to remove.</div>
+  <div id="saves-container"><div class="loading">⏳ Loading saved records...</div></div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="modalbg" id="del-modal">
+  <div class="modalbox">
+    <div class="modal-icon">🗑️</div>
+    <div class="modal-title">Delete this record?</div>
+    <div class="modal-sub">This action cannot be undone. The saved data will be permanently deleted.</div>
+    <div class="modal-btns">
+      <button class="mbcancel" id="del-cancel">Cancel</button>
+      <button class="mbdel" id="del-confirm">Yes, Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, deleteDoc, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDgFIkSHPJVdI5WXQzPUeDNAQpvQtP0Bsg",
+  authDomain: "varunworktrack.firebaseapp.com",
+  projectId: "varunworktrack",
+  storageBucket: "varunworktrack.firebasestorage.app",
+  messagingSenderId: "660423634322",
+  appId: "1:660423634322:web:115d5e026d534c2a9ea54b"
+};
+
+const app  = initializeApp(firebaseConfig);
+const db   = getFirestore(app);
+const auth = getAuth(app);
+
+const ini = n => n.trim().split(/\s+/).map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'?';
+
+function toast(msg, color='var(--green)'){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = color;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+function fmtHM(decHrs){
+  const totalMins = Math.round((decHrs||0)*60);
+  const h = Math.floor(totalMins/60), m = totalMins%60;
+  if(h===0) return `${m}m`;
+  if(m===0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
+function formatDate(iso){
+  const d = new Date(iso);
+  return {
+    date: d.toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}),
+    time: d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})
+  };
+}
+
+function calcEmpTotals(emp, empData){
+  // empData has shifts/times stored — we use pre-calculated totals if saved
+  // Otherwise show what's available
+  return empData || {};
+}
+
+let deleteTargetId = null;
+
+async function loadHistory(){
+  const container = document.getElementById('saves-container');
+  try {
+    const q = query(collection(db, 'history'), orderBy('savedAt','desc'));
+    const snap = await getDocs(q);
+
+    if(snap.empty){
+      container.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">📭</div>
+          <div class="empty-title">No saved records yet</div>
+          <div style="font-size:.8rem;margin-top:6px;">Go to the tracker, enter data, and click ☁ Save to create a record.</div>
+        </div>`;
+      return;
+    }
+
+    const docs = [];
+    snap.forEach(d => docs.push({id: d.id, ...d.data()}));
+
+    let html = `<div class="saves-list">`;
+    docs.forEach((rec, idx) => {
+      const {date, time} = formatDate(rec.savedAt);
+      const empCount = (rec.employees||[]).length;
+      const grandTotal = (rec.employees||[]).reduce((sum, emp) => {
+        return sum + (emp.totalSalary||0);
+      }, 0);
+
+      html += `
+      <div class="save-card" id="card-${rec.id}">
+        <div class="save-hdr">
+          <span class="save-num">Save #${docs.length - idx}</span>
+          <div>
+            <div class="save-date">${date}</div>
+            <div class="save-time">🕐 ${time}</div>
+          </div>
+          <div class="save-meta">${empCount} employee${empCount!==1?'s':''} &nbsp;·&nbsp; Grand Total: <strong style="color:var(--green)">₹${grandTotal.toFixed(2)}</strong></div>
+          <div class="save-btns">
+            <button class="btn-view" onclick="toggleDetail('${rec.id}')">👁 View</button>
+            <button class="btn-del" onclick="askDelete('${rec.id}', '${date}')">🗑 Delete</button>
+          </div>
+        </div>
+        <div class="save-detail" id="detail-${rec.id}">
+          ${buildDetail(rec)}
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+    container.innerHTML = html;
+
+  } catch(e){
+    console.error(e);
+    container.innerHTML = `<div class="empty"><div class="empty-icon">❌</div><div class="empty-title">Failed to load history</div><div style="font-size:.8rem;margin-top:6px;">Check your internet connection and try again.</div></div>`;
+  }
+}
+
+function buildDetail(rec){
+  const employees = rec.employees || [];
+  if(employees.length === 0) return `<p style="color:var(--muted);padding:20px;">No employee data found in this save.</p>`;
+
+  const grandTotal = employees.reduce((s,e)=>s+(e.totalSalary||0),0);
+  const grandRegPay = employees.reduce((s,e)=>s+(e.totalRegPay||0),0);
+  const grandOtPay = employees.reduce((s,e)=>s+(e.totalOtPay||0),0);
+  const grandDays = employees.reduce((s,e)=>s+(e.daysWorked||0),0);
+
+  let html = `
+  <div class="grand-total">
+    <div>
+      <div class="gt-label">💰 Weekly Grand Total</div>
+      <div class="gt-meta">${employees.length} employee${employees.length!==1?'s':''} · ${grandDays} total days worked</div>
+    </div>
+    <div class="gt-val">₹${grandTotal.toFixed(2)}</div>
+  </div>`;
+
+  employees.forEach(emp => {
+    html += `
+    <div class="detail-emp">
+      <div class="detail-name">
+        <div class="detail-avatar">${ini(emp.name||'?')}</div>
+        ${emp.name||'Unknown'}
+        <span style="font-size:.72rem;color:var(--muted);font-family:'Outfit',sans-serif;font-weight:400;margin-left:4px;">₹${emp.rate||0}/shift</span>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-stat">
+          <div class="ds-lbl">Days Worked</div>
+          <div class="ds-val go">${emp.daysWorked||0} / 6</div>
+        </div>
+        <div class="detail-stat">
+          <div class="ds-lbl">Total Hours</div>
+          <div class="ds-val bl">${fmtHM(emp.totalHours||0)}</div>
+        </div>
+        <div class="detail-stat">
+          <div class="ds-lbl">Regular Hours</div>
+          <div class="ds-val bl">${fmtHM(emp.totalRegH||0)}</div>
+        </div>
+        <div class="detail-stat">
+          <div class="ds-lbl">OT Hours</div>
+          <div class="ds-val pu">${fmtHM(emp.totalOtH||0)}</div>
+        </div>
+        <div class="detail-stat">
+          <div class="ds-lbl">Regular Pay</div>
+          <div class="ds-val go">₹${(emp.totalRegPay||0).toFixed(2)}</div>
+        </div>
+        <div class="detail-stat">
+          <div class="ds-lbl">OT Pay</div>
+          <div class="ds-val pu">₹${(emp.totalOtPay||0).toFixed(2)}</div>
+        </div>
+        <div class="detail-stat" style="border-color:var(--green);background:rgba(63,185,80,.06)">
+          <div class="ds-lbl">Total Salary</div>
+          <div class="ds-val gr">₹${(emp.totalSalary||0).toFixed(2)}</div>
+        </div>
+      </div>
+    </div>`;
+  });
+
+  return html;
+}
+
+window.toggleDetail = function(id){
+  const detail = document.getElementById(`detail-${id}`);
+  const btn = document.querySelector(`#card-${id} .btn-view`);
+  const isOpen = detail.classList.contains('open');
+  detail.classList.toggle('open', !isOpen);
+  btn.textContent = isOpen ? '👁 View' : '🔼 Hide';
+};
+
+window.askDelete = function(id, date){
+  deleteTargetId = id;
+  document.getElementById('del-modal').classList.add('open');
+};
+
+document.getElementById('del-cancel').onclick = () => {
+  document.getElementById('del-modal').classList.remove('open');
+  deleteTargetId = null;
+};
+
+document.getElementById('del-confirm').onclick = async () => {
+  if(!deleteTargetId) return;
+  try {
+    await deleteDoc(doc(db, 'history', deleteTargetId));
+    document.getElementById(`card-${deleteTargetId}`).remove();
+    document.getElementById('del-modal').classList.remove('open');
+    toast('Record deleted ✓', 'var(--red)');
+    deleteTargetId = null;
+    // Show empty state if no cards left
+    if(document.querySelectorAll('.save-card').length === 0){
+      document.getElementById('saves-container').innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">📭</div>
+          <div class="empty-title">No saved records</div>
+          <div style="font-size:.8rem;margin-top:6px;">Go to the tracker and click ☁ Save to create a record.</div>
+        </div>`;
+    }
+  } catch(e){
+    toast('Delete failed — try again', 'var(--red)');
+  }
+};
+
+// Auth check
+onAuthStateChanged(auth, user => {
+  if(!user) { window.location.href = 'login.html'; return; }
+  loadHistory();
+});
+</script>
+</body>
+</html>

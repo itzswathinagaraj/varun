@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorkTrack – Salary Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<!-- Excel & PDF libraries -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ══════════════════════════════════
+     STEP 1 — SELECT EMPLOYEE COUNT
+══════════════════════════════════ -->
+<div id="step1" class="screen show">
+  <div class="s1box">
+    <div class="appname">WorkTrack</div>
+    <div style="font-size:.72rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">VARUN INDUSTRIES</div>
+    <div class="appsub">Weekly Attendance &amp; Salary Manager</div>
+    <div class="howbox">
+      <strong>How it works:</strong><br>
+      <span class="g">Option A — In/Out Time:</span> Enter clock-in &amp; clock-out for each day (Mon–Sat)<br>
+      <span class="o">Option B — Shift Count:</span> Enter shifts worked (1 shift = 8 hrs)<br><br>
+      <strong>Either option is enough.</strong> System calculates:<br>
+      Regular hrs · Overtime hrs · Regular pay · OT pay · Total salary
+    </div>
+    <div class="countlbl">How many employees?</div>
+    <div class="countrow">
+      <button class="ccbtn" id="dec">−</button>
+      <div class="ccnum" id="cnum">1</div>
+      <button class="ccbtn" id="inc">+</button>
+    </div>
+    <div class="counthint" style="margin-bottom:32px;">Select 1 to 50 employees</div>
+    <button class="bigbtn" id="to-step2">Next → Enter Employee Details</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     STEP 2 — EMPLOYEE DETAILS
+══════════════════════════════════ -->
+<div id="step2" class="screen">
+  <div class="topbar">
+    <span class="tblogo">WorkTrack</span><span style="font-size:.68rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-left:8px;">VARUN INDUSTRIES</span>
+    <div class="tbsep"></div>
+    <div class="tbinfo">Step 2 — <b id="step2lbl">Enter Employees</b></div>
+    <div class="tbacts">
+      <button class="tbtn" onclick="show('step1')">← Back</button>
+      <button class="tbtn grn" id="to-step3-btn">▶ Start Tracking</button>
+    </div>
+  </div>
+  <div class="page">
+    <div class="setup-intro">Fill in each employee's name, salary per shift, and OT rate. You can edit these later inside the tracker.</div>
+    <div class="setup-grid" id="setup-grid"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     STEP 3 — TRACKER
+══════════════════════════════════ -->
+<div id="step3" class="screen">
+  <div class="topbar">
+    <span class="tblogo">WorkTrack</span><span style="font-size:.68rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-left:8px;">VARUN INDUSTRIES</span>
+    <div class="tbsep"></div>
+    <div class="tbinfo" id="tb-info"></div>
+    <div class="tbacts">
+      <button class="tbtn grn" onclick="saveToCloud()">☁ Save</button>
+      <button class="tbtn pri" onclick="doSummary()">📊 Summary</button>
+      <button class="tbtn blu" onclick="downloadExcel()">📥 Excel</button>
+      <button class="tbtn red" onclick="downloadPDF()">📄 PDF</button>
+      <button class="tbtn" onclick="window.location.href='history.html'">📋 History</button>
+      <button class="tbtn" onclick="window.print()">🖨 Print</button>
+      <button class="tbtn" onclick="show('step2')">⚙ Setup</button>
+      <button class="tbtn" onclick="logout()">⏻ Logout</button>
+    </div>
+  </div>
+  <div class="emptabs" id="emptabs"></div>
+  <div class="trackerpage" id="trackerbody"></div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modalbg" id="editmodal">
+  <div class="modalbox">
+    <div class="modaltitle">Edit Employee <button class="modalclose" onclick="closeEdit()">✕</button></div>
+    <div class="mfield"><label class="fl">Full Name</label><input class="fi" id="m-name" type="text"></div>
+    <div class="mfrow">
+      <div class="mfield"><label class="fl">Salary / Shift (₹)</label><input class="fi" id="m-rate" type="number" min="0" placeholder="e.g. 650" oninput="const r=parseFloat(this.value)||0;document.getElementById('m-otrate').value=r>0?(r/8).toFixed(2):''"></div>
+      <div class="mfield"><label class="fl">OT Rate / Hour (₹) <span style="color:var(--green);font-size:.65rem;letter-spacing:0">(auto)</span></label><input class="fi" id="m-otrate" type="number" min="0" placeholder="auto"></div>
+    </div>
+    <div class="mbtns">
+      <button class="mbcancel" onclick="closeEdit()">Cancel</button>
+      <button class="mbsave" onclick="saveEdit()">Save Changes ✓</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<button id="scroll-top" title="Back to top">↑</button>
+<button id="scroll-bottom" title="Scroll to bottom">↓</button>
+
+<script type="module" src="script.js"></script>
+
+</body>
+</html>
