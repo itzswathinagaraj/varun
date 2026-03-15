@@ -39,7 +39,7 @@ input[type=number]::-webkit-inner-spin-button{opacity:.5;}
 
 /* ─── STEP 1: SELECT COUNT ─── */
 .s1box{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:52px 44px;max-width:480px;width:100%;text-align:center;box-shadow:0 8px 48px rgba(0,0,0,.6);}
-.appname{font-family:'Syne',sans-serif;font-size:3rem;font-weight:800;letter-spacing:-1px;background:linear-gradient(135deg,var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;margin-bottom:6px;}
+.appname{font-family:'Syne',sans-serif;font-size:clamp(1.6rem,7vw,2.6rem);font-weight:800;letter-spacing:-1px;background:linear-gradient(135deg,var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;margin-bottom:6px;}
 .appsub{font-size:.76rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:38px;}
 .howbox{background:var(--bg3);border:1px solid var(--b2);border-left:3px solid var(--blue);border-radius:8px;padding:14px 16px;text-align:left;font-size:.8rem;color:var(--muted);line-height:1.85;margin-bottom:32px;}
 .howbox strong{color:var(--blue);}
