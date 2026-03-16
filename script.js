@@ -2,7 +2,7 @@
    FIREBASE SETUP
 ═══════════════════════════════════════════ */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, addDoc, deleteDoc, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, addDoc, deleteDoc, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
@@ -146,6 +146,62 @@ async function loadFromCloud() {
    SESSION MANAGEMENT
 ═══════════════════════════════════════════ */
 let sessionWatchInterval = null;
+const MAX_SESSIONS = 3;
+
+function getDeviceInfo(){
+  const ua = navigator.userAgent;
+  if(/Android/i.test(ua))     return '📱 Android';
+  if(/iPhone|iPad/i.test(ua)) return '📱 iPhone/iPad';
+  if(/Windows/i.test(ua))     return '💻 Windows';
+  if(/Mac/i.test(ua))         return '💻 Mac';
+  if(/Linux/i.test(ua))       return '🖥️ Linux';
+  return '🌐 Browser';
+}
+
+async function registerSession(userId) {
+  try {
+    // If this tab already has a valid session, don't register again
+    const existing = sessionStorage.getItem('sessionId');
+    if (existing) {
+      const snap = await getDoc(doc(db, 'activeSessions', existing));
+      if (snap.exists()) return existing; // already registered, still alive
+    }
+
+    // Get all sessions sorted oldest first
+    const q = query(collection(db, 'activeSessions'), orderBy('loginTime', 'asc'));
+    const snap2 = await getDocs(q);
+    const sessions = [];
+    snap2.forEach(d => sessions.push({ id: d.id, ...d.data() }));
+
+    // Remove stale sessions (older than 24h)
+    const now = Date.now();
+    const alive = [];
+    for (const s of sessions) {
+      if (now - s.loginTime > 24 * 60 * 60 * 1000) {
+        await deleteDoc(doc(db, 'activeSessions', s.id));
+      } else {
+        alive.push(s);
+      }
+    }
+
+    // If at limit, kick oldest
+    if (alive.length >= MAX_SESSIONS) {
+      await deleteDoc(doc(db, 'activeSessions', alive[0].id));
+    }
+
+    // Register this session
+    const ref = await addDoc(collection(db, 'activeSessions'), {
+      userId,
+      loginTime: Date.now(),
+      device: getDeviceInfo(),
+    });
+    sessionStorage.setItem('sessionId', ref.id);
+    return ref.id;
+  } catch(e) {
+    console.error('Session register error:', e);
+    return null;
+  }
+}
 
 async function removeOwnSession() {
   try {
@@ -343,10 +399,12 @@ function initApp() {
 /* ═══════════════════════════════════════════
    FIREBASE AUTH CHECK
 ═══════════════════════════════════════════ */
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   if (!user) {
     window.location.href = "login.html";
   } else {
+    // Register session whether coming from login page OR auto-login (returning visit)
+    await registerSession(user.uid);
     initApp();
   }
 });
