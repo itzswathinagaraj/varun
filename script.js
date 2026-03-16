@@ -160,56 +160,59 @@ function getDeviceInfo(){
 
 async function registerSession(userId) {
   try {
-    // If this tab already has a sessionId AND it still exists in Firestore, reuse it
+    // If this tab already has a valid session, just refresh heartbeat and return
     const existing = sessionStorage.getItem('sessionId');
     if (existing) {
       const snap = await getDoc(doc(db, 'activeSessions', existing));
       if (snap.exists()) {
-        // Refresh the heartbeat timestamp so it doesn't look stale
-        await setDoc(doc(db, 'activeSessions', existing), {
+        setDoc(doc(db, 'activeSessions', existing), {
           userId, loginTime: snap.data().loginTime,
           lastSeen: Date.now(), device: getDeviceInfo()
-        });
+        }); // no await — fire and forget
         return existing;
       }
-      // Session was deleted (kicked) — clear it and register fresh
       sessionStorage.removeItem('sessionId');
     }
 
-    // Fetch all sessions sorted oldest first
-    const q = query(collection(db, 'activeSessions'), orderBy('loginTime', 'asc'));
-    const snap2 = await getDocs(q);
+    // Fetch all sessions + register new session IN PARALLEL
+    const [snap2, ref] = await Promise.all([
+      getDocs(query(collection(db, 'activeSessions'), orderBy('loginTime', 'asc'))),
+      addDoc(collection(db, 'activeSessions'), {
+        userId,
+        loginTime: Date.now(),
+        lastSeen: Date.now(),
+        device: getDeviceInfo(),
+      })
+    ]);
+    sessionStorage.setItem('sessionId', ref.id);
+
     const now = Date.now();
+    const stale = [];
     const alive = [];
 
-    // Collect all sessions, remove truly stale ones (no heartbeat > 5 min)
-    for (const d of snap2.docs) {
-      const s = d.data();
-      const lastPing = s.lastSeen || s.loginTime;
+    snap2.docs.forEach(d => {
+      if (d.id === ref.id) return; // skip ourselves
+      const lastPing = d.data().lastSeen || d.data().loginTime;
       if (now - lastPing > 5 * 60 * 1000) {
-        await deleteDoc(doc(db, 'activeSessions', d.id));
+        stale.push(d.id);
       } else {
-        alive.push({ id: d.id, ...s });
+        alive.push({ id: d.id, loginTime: d.data().loginTime });
       }
-    }
-
-    // Register THIS session first (claim a spot immediately)
-    const ref = await addDoc(collection(db, 'activeSessions'), {
-      userId,
-      loginTime: Date.now(),
-      lastSeen: Date.now(),
-      device: getDeviceInfo(),
     });
-    sessionStorage.setItem('sessionId', ref.id);
-    alive.push({ id: ref.id, loginTime: Date.now() });
 
-    // Now sort all sessions oldest first and kick any excess beyond MAX
+    // Delete stale sessions in parallel (fire and forget)
+    if (stale.length) Promise.all(stale.map(id => deleteDoc(doc(db, 'activeSessions', id))));
+
+    // Add ourselves and sort oldest first
+    alive.push({ id: ref.id, loginTime: Date.now() });
     alive.sort((a, b) => a.loginTime - b.loginTime);
-    while (alive.length > MAX_SESSIONS) {
-      const kicked = alive.shift(); // remove oldest
-      await deleteDoc(doc(db, 'activeSessions', kicked.id));
-      // If we just kicked ourselves, show the kicked screen
-      if (kicked.id === ref.id) {
+
+    // Kick excess sessions in parallel
+    if (alive.length > MAX_SESSIONS) {
+      const toKick = alive.slice(0, alive.length - MAX_SESSIONS);
+      await Promise.all(toKick.map(s => deleteDoc(doc(db, 'activeSessions', s.id))));
+      // If we were kicked (we were among the oldest)
+      if (toKick.some(s => s.id === ref.id)) {
         sessionStorage.removeItem('sessionId');
         showKickedModal();
         return null;
@@ -234,6 +237,14 @@ async function removeOwnSession() {
 }
 
 function startSessionWatch() {
+  // Check after 3s on first load (catches kick quickly), then every 90s
+  setTimeout(async () => {
+    const sessionId = sessionStorage.getItem("sessionId");
+    if (!sessionId) return;
+    const snap = await getDoc(doc(db, "activeSessions", sessionId));
+    if (!snap.exists()) { showKickedModal(); return; }
+  }, 3000);
+
   // Every 90s: update heartbeat + check if we were kicked
   sessionWatchInterval = setInterval(async () => {
     try {
