@@ -160,39 +160,54 @@ function getDeviceInfo(){
 
 async function registerSession(userId) {
   try {
-    // If this tab already has a valid session, don't register again
+    // If this tab already has a sessionId AND it still exists in Firestore, reuse it
     const existing = sessionStorage.getItem('sessionId');
     if (existing) {
       const snap = await getDoc(doc(db, 'activeSessions', existing));
-      if (snap.exists()) return existing; // already registered, still alive
+      if (snap.exists()) {
+        // Refresh the heartbeat timestamp so it doesn't look stale
+        await setDoc(doc(db, 'activeSessions', existing), {
+          userId, loginTime: snap.data().loginTime,
+          lastSeen: Date.now(), device: getDeviceInfo()
+        });
+        return existing;
+      }
+      // Session was deleted (kicked) — clear it and register fresh
+      sessionStorage.removeItem('sessionId');
     }
 
-    // Get all sessions sorted oldest first
+    // Small random delay to prevent race condition when multiple tabs open at once
+    await new Promise(r => setTimeout(r, Math.random() * 800 + 200));
+
+    // Fetch all sessions sorted oldest first
     const q = query(collection(db, 'activeSessions'), orderBy('loginTime', 'asc'));
     const snap2 = await getDocs(q);
-    const sessions = [];
-    snap2.forEach(d => sessions.push({ id: d.id, ...d.data() }));
-
-    // Remove stale sessions (older than 24h)
     const now = Date.now();
     const alive = [];
-    for (const s of sessions) {
-      if (now - s.loginTime > 24 * 60 * 60 * 1000) {
-        await deleteDoc(doc(db, 'activeSessions', s.id));
+
+    // Collect all sessions, remove truly stale ones (no heartbeat > 5 min)
+    for (const d of snap2.docs) {
+      const s = d.data();
+      const lastPing = s.lastSeen || s.loginTime;
+      if (now - lastPing > 5 * 60 * 1000) {
+        await deleteDoc(doc(db, 'activeSessions', d.id));
       } else {
-        alive.push(s);
+        alive.push({ id: d.id, ...s });
       }
     }
 
-    // If at limit, kick oldest
-    if (alive.length >= MAX_SESSIONS) {
-      await deleteDoc(doc(db, 'activeSessions', alive[0].id));
+    // Sort oldest first — keep kicking until we have room for exactly 1 more
+    alive.sort((a, b) => a.loginTime - b.loginTime);
+    while (alive.length >= MAX_SESSIONS) {
+      const kicked = alive.shift();
+      await deleteDoc(doc(db, 'activeSessions', kicked.id));
     }
 
-    // Register this session
+    // Register this new session
     const ref = await addDoc(collection(db, 'activeSessions'), {
       userId,
       loginTime: Date.now(),
+      lastSeen: Date.now(),
       device: getDeviceInfo(),
     });
     sessionStorage.setItem('sessionId', ref.id);
@@ -214,6 +229,7 @@ async function removeOwnSession() {
 }
 
 function startSessionWatch() {
+  // Every 90s: update heartbeat + check if we were kicked
   sessionWatchInterval = setInterval(async () => {
     try {
       const sessionId = sessionStorage.getItem("sessionId");
@@ -222,9 +238,15 @@ function startSessionWatch() {
       if (!snap.exists()) {
         clearInterval(sessionWatchInterval);
         showKickedModal();
+        return;
       }
+      // Update lastSeen heartbeat so we don't get pruned as stale
+      await setDoc(doc(db, "activeSessions", sessionId), {
+        ...snap.data(),
+        lastSeen: Date.now()
+      });
     } catch(e) {}
-  }, 20000);
+  }, 90000);
 }
 
 function showKickedModal() {
