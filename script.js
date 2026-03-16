@@ -176,9 +176,6 @@ async function registerSession(userId) {
       sessionStorage.removeItem('sessionId');
     }
 
-    // Small random delay to prevent race condition when multiple tabs open at once
-    await new Promise(r => setTimeout(r, Math.random() * 800 + 200));
-
     // Fetch all sessions sorted oldest first
     const q = query(collection(db, 'activeSessions'), orderBy('loginTime', 'asc'));
     const snap2 = await getDocs(q);
@@ -196,14 +193,7 @@ async function registerSession(userId) {
       }
     }
 
-    // Sort oldest first — keep kicking until we have room for exactly 1 more
-    alive.sort((a, b) => a.loginTime - b.loginTime);
-    while (alive.length >= MAX_SESSIONS) {
-      const kicked = alive.shift();
-      await deleteDoc(doc(db, 'activeSessions', kicked.id));
-    }
-
-    // Register this new session
+    // Register THIS session first (claim a spot immediately)
     const ref = await addDoc(collection(db, 'activeSessions'), {
       userId,
       loginTime: Date.now(),
@@ -211,6 +201,21 @@ async function registerSession(userId) {
       device: getDeviceInfo(),
     });
     sessionStorage.setItem('sessionId', ref.id);
+    alive.push({ id: ref.id, loginTime: Date.now() });
+
+    // Now sort all sessions oldest first and kick any excess beyond MAX
+    alive.sort((a, b) => a.loginTime - b.loginTime);
+    while (alive.length > MAX_SESSIONS) {
+      const kicked = alive.shift(); // remove oldest
+      await deleteDoc(doc(db, 'activeSessions', kicked.id));
+      // If we just kicked ourselves, show the kicked screen
+      if (kicked.id === ref.id) {
+        sessionStorage.removeItem('sessionId');
+        showKickedModal();
+        return null;
+      }
+    }
+
     return ref.id;
   } catch(e) {
     console.error('Session register error:', e);
