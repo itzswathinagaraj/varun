@@ -41,6 +41,9 @@
   .section-tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:16px;}
   .tag-email{background:rgba(88,166,255,.15);color:#58a6ff;border:1px solid rgba(88,166,255,.3);}
   .tag-pwd{background:rgba(188,140,255,.15);color:#bc8cff;border:1px solid rgba(188,140,255,.3);}
+  /* Session limit badge */
+  .session-info{font-size:.72rem;color:#8b949e;text-align:center;margin-top:12px;padding:8px;background:rgba(88,166,255,.06);border-radius:8px;border:1px solid rgba(88,166,255,.15);}
+  .session-info span{color:#58a6ff;font-weight:600;}
 </style>
 </head>
 <body>
@@ -73,10 +76,11 @@
     <button class="btn" id="login-btn">Login →</button>
     <button class="btn-blue" id="go-change-btn">⚙ Change Email / Password</button>
 
-    <div class="err" id="login-err">❌ Wrong email or password. Please try again.</div>
+    <div class="err" id="login-err"></div>
     <div class="loading" id="login-loading">⏳ Logging in...</div>
     <div class="divider"></div>
-    <div class="hint">Only authorized admin can access this system.</div>
+    <div class="session-info">Max <span>3 devices</span> can be logged in at once. A 4th login will remove the oldest session.</div>
+    <div class="hint" style="margin-top:10px">Only authorized admin can access this system.</div>
   </div>
 
   <!-- ── CHANGE EMAIL / PASSWORD PANEL ── -->
@@ -86,7 +90,6 @@
       Change Credentials
     </div>
 
-    <!-- Current login to verify -->
     <div class="field">
       <label>Current Email</label>
       <input type="email" id="cur-email" placeholder="Your current email">
@@ -103,15 +106,12 @@
     </div>
 
     <div class="divider"></div>
-
-    <!-- New Email section -->
     <div class="section-tag tag-email">📧 New Email (optional)</div>
     <div class="field">
       <label>New Email Address</label>
       <input type="email" id="new-email" placeholder="Leave blank to keep current">
     </div>
 
-    <!-- New Password section -->
     <div class="section-tag tag-pwd">🔑 New Password (optional)</div>
     <div class="field">
       <label>New Password</label>
@@ -147,6 +147,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDgFIkSHPJVdI5WXQzPUeDNAQpvQtP0Bsg",
@@ -159,6 +160,9 @@ const firebaseConfig = {
 
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db   = getFirestore(app);
+
+const MAX_SESSIONS = 3;
 
 /* ── Panel switch ── */
 function showPanel(id){
@@ -166,11 +170,11 @@ function showPanel(id){
   document.getElementById(id).classList.add('active');
 }
 
-document.getElementById('go-change-btn').onclick  = () => showPanel('panel-change');
-document.getElementById('back-btn').onclick        = () => showPanel('panel-login');
-document.getElementById('cancel-change-btn').onclick = () => showPanel('panel-login');
+document.getElementById('go-change-btn').onclick     = () => showPanel('panel-change');
+document.getElementById('back-btn').onclick           = () => showPanel('panel-login');
+document.getElementById('cancel-change-btn').onclick  = () => showPanel('panel-login');
 
-/* ── Eye toggle helper ── */
+/* ── Eye toggle ── */
 function eyeToggle(inputId, showId, hideId){
   const input = document.getElementById(inputId);
   const show  = document.getElementById(showId);
@@ -182,10 +186,67 @@ function eyeToggle(inputId, showId, hideId){
   input.focus();
 }
 
-document.getElementById('eye-login').onclick   = () => eyeToggle('password',    'eye-show-login',   'eye-hide-login');
-document.getElementById('eye-cur').onclick     = () => eyeToggle('cur-password', 'eye-show-cur',     'eye-hide-cur');
-document.getElementById('eye-new').onclick     = () => eyeToggle('new-password', 'eye-show-new',     'eye-hide-new');
-document.getElementById('eye-confirm').onclick = () => eyeToggle('confirm-password','eye-show-confirm','eye-hide-confirm');
+document.getElementById('eye-login').onclick   = () => eyeToggle('password',        'eye-show-login',   'eye-hide-login');
+document.getElementById('eye-cur').onclick     = () => eyeToggle('cur-password',     'eye-show-cur',     'eye-hide-cur');
+document.getElementById('eye-new').onclick     = () => eyeToggle('new-password',     'eye-show-new',     'eye-hide-new');
+document.getElementById('eye-confirm').onclick = () => eyeToggle('confirm-password', 'eye-show-confirm', 'eye-hide-confirm');
+
+/* ══════════════════════════════════════
+   SESSION MANAGEMENT
+══════════════════════════════════════ */
+function getDeviceInfo(){
+  const ua = navigator.userAgent;
+  if(/Android/i.test(ua))     return '📱 Android';
+  if(/iPhone|iPad/i.test(ua)) return '📱 iPhone/iPad';
+  if(/Windows/i.test(ua))     return '💻 Windows';
+  if(/Mac/i.test(ua))         return '💻 Mac';
+  if(/Linux/i.test(ua))       return '🖥️ Linux';
+  return '🌐 Browser';
+}
+
+async function registerSession(userId) {
+  try {
+    // Get all current sessions sorted oldest first
+    const q = query(collection(db, 'activeSessions'), orderBy('loginTime', 'asc'));
+    const snap = await getDocs(q);
+    const sessions = [];
+    snap.forEach(d => sessions.push({ id: d.id, ...d.data() }));
+
+    // Remove sessions older than 24 hours (stale/crashed tabs)
+    const now = Date.now();
+    for (const s of sessions) {
+      if (now - s.loginTime > 24 * 60 * 60 * 1000) {
+        await deleteDoc(doc(db, 'activeSessions', s.id));
+      }
+    }
+
+    // Re-fetch after cleanup
+    const snap2 = await getDocs(query(collection(db, 'activeSessions'), orderBy('loginTime', 'asc')));
+    const activeSessions = [];
+    snap2.forEach(d => activeSessions.push({ id: d.id, ...d.data() }));
+
+    // If at limit, delete oldest session (kicks that device out)
+    if (activeSessions.length >= MAX_SESSIONS) {
+      const oldest = activeSessions[0];
+      await deleteDoc(doc(db, 'activeSessions', oldest.id));
+    }
+
+    // Register this new session
+    const sessionRef = await addDoc(collection(db, 'activeSessions'), {
+      userId,
+      loginTime: Date.now(),
+      device: getDeviceInfo(),
+      active: true
+    });
+
+    // Store sessionId in sessionStorage (tab-specific)
+    sessionStorage.setItem('sessionId', sessionRef.id);
+    return sessionRef.id;
+  } catch(e) {
+    console.error('Session registration error:', e);
+    return null;
+  }
+}
 
 /* ── Login ── */
 async function login(){
@@ -204,7 +265,8 @@ async function login(){
   btnEl.disabled=true;
 
   try {
-    await signInWithEmailAndPassword(auth, email, password);
+    const userCred = await signInWithEmailAndPassword(auth, email, password);
+    await registerSession(userCred.user.uid);
     window.location.href = 'index.html';
   } catch(e) {
     loadEl.style.display='none';
@@ -229,22 +291,19 @@ document.getElementById('save-change-btn').onclick = async function(){
   const newEmail   = document.getElementById('new-email').value.trim();
   const newPwd     = document.getElementById('new-password').value;
   const confirmPwd = document.getElementById('confirm-password').value;
+  const errEl      = document.getElementById('change-err');
+  const sucEl      = document.getElementById('change-suc');
+  const loadEl     = document.getElementById('change-loading');
+  const btnEl      = document.getElementById('save-change-btn');
 
-  const errEl  = document.getElementById('change-err');
-  const sucEl  = document.getElementById('change-suc');
-  const loadEl = document.getElementById('change-loading');
-  const btnEl  = document.getElementById('save-change-btn');
+  errEl.style.display='none'; sucEl.style.display='none';
 
-  errEl.style.display='none';
-  sucEl.style.display='none';
-
-  // Validations
   if(!curEmail || !curPwd){
     errEl.textContent='❌ Please enter your current email and password.';
     errEl.style.display='block'; return;
   }
   if(!newEmail && !newPwd){
-    errEl.textContent='❌ Please enter a new email or new password (or both).';
+    errEl.textContent='❌ Please enter a new email or new password.';
     errEl.style.display='block'; return;
   }
   if(newPwd && newPwd !== confirmPwd){
@@ -252,54 +311,33 @@ document.getElementById('save-change-btn').onclick = async function(){
     errEl.style.display='block'; return;
   }
   if(newPwd && newPwd.length < 6){
-    errEl.textContent='❌ New password must be at least 6 characters.';
+    errEl.textContent='❌ Password must be at least 6 characters.';
     errEl.style.display='block'; return;
   }
 
-  loadEl.style.display='block';
-  btnEl.disabled=true;
+  loadEl.style.display='block'; btnEl.disabled=true;
 
   try {
-    // Step 1: Sign in with current credentials to verify
     const userCred = await signInWithEmailAndPassword(auth, curEmail, curPwd);
     const user = userCred.user;
-
-    // Re-authenticate (required by Firebase before sensitive changes)
     const credential = EmailAuthProvider.credential(curEmail, curPwd);
     await reauthenticateWithCredential(user, credential);
+    if(newEmail && newEmail !== curEmail) await updateEmail(user, newEmail);
+    if(newPwd) await updatePassword(user, newPwd);
 
-    // Step 2: Update email if provided
-    if(newEmail && newEmail !== curEmail){
-      await updateEmail(user, newEmail);
-    }
-
-    // Step 3: Update password if provided
-    if(newPwd){
-      await updatePassword(user, newPwd);
-    }
-
-    loadEl.style.display='none';
-    btnEl.disabled=false;
-    sucEl.textContent='✅ Credentials updated successfully! Please login again with your new details.';
+    loadEl.style.display='none'; btnEl.disabled=false;
+    sucEl.textContent='✅ Updated! Please login again with new details.';
     sucEl.style.display='block';
-
-    // Clear all fields
     ['cur-email','cur-password','new-email','new-password','confirm-password'].forEach(id=>{
       document.getElementById(id).value='';
     });
-
-    // Go back to login after 2.5 seconds
     setTimeout(()=> showPanel('panel-login'), 2500);
-
   } catch(e) {
-    loadEl.style.display='none';
-    btnEl.disabled=false;
-    if(e.code==='auth/wrong-password' || e.code==='auth/user-not-found' || e.code==='auth/invalid-credential'){
+    loadEl.style.display='none'; btnEl.disabled=false;
+    if(e.code==='auth/wrong-password'||e.code==='auth/user-not-found'||e.code==='auth/invalid-credential'){
       errEl.textContent='❌ Current email or password is wrong.';
     } else if(e.code==='auth/email-already-in-use'){
-      errEl.textContent='❌ That email is already in use by another account.';
-    } else if(e.code==='auth/invalid-email'){
-      errEl.textContent='❌ Invalid email format.';
+      errEl.textContent='❌ That email is already in use.';
     } else {
       errEl.textContent='❌ Something went wrong. Please try again.';
     }
