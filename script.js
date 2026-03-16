@@ -430,9 +430,9 @@ onAuthStateChanged(auth, async (user) => {
   if (!user) {
     window.location.href = "login.html";
   } else {
-    // Register session whether coming from login page OR auto-login (returning visit)
-    await registerSession(user.uid);
+    // Start app immediately — session registration runs in background
     initApp();
+    registerSession(user.uid); // no await — doesn't block app load
   }
 });
 
