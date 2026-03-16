@@ -2,7 +2,7 @@
    FIREBASE SETUP
 ═══════════════════════════════════════════ */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, addDoc, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, addDoc, deleteDoc, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
@@ -142,11 +142,51 @@ async function loadFromCloud() {
   }
 }
 
-window.logout = function() {
-  signOut(auth).then(() => {
-    window.location.href = "login.html";
-  });
+/* ═══════════════════════════════════════════
+   SESSION MANAGEMENT
+═══════════════════════════════════════════ */
+let sessionWatchInterval = null;
+
+async function removeOwnSession() {
+  try {
+    const sessionId = sessionStorage.getItem("sessionId");
+    if (sessionId) {
+      await deleteDoc(doc(db, "activeSessions", sessionId));
+      sessionStorage.removeItem("sessionId");
+    }
+  } catch(e) {}
+}
+
+function startSessionWatch() {
+  sessionWatchInterval = setInterval(async () => {
+    try {
+      const sessionId = sessionStorage.getItem("sessionId");
+      if (!sessionId) return;
+      const snap = await getDoc(doc(db, "activeSessions", sessionId));
+      if (!snap.exists()) {
+        clearInterval(sessionWatchInterval);
+        showKickedModal();
+      }
+    } catch(e) {}
+  }, 20000);
+}
+
+function showKickedModal() {
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;inset:0;background:rgba(13,17,23,.95);display:flex;align-items:center;justify-content:center;z-index:9999;font-family:Outfit,sans-serif;";
+  overlay.innerHTML = `<div style="background:#161b22;border:1px solid #f85149;border-radius:20px;padding:40px 36px;max-width:360px;width:90%;text-align:center;box-shadow:0 8px 48px rgba(248,81,73,.3)"><div style="font-size:2.5rem;margin-bottom:16px">⚠️</div><div style="font-size:1.2rem;font-weight:800;color:#f85149;margin-bottom:12px">Session Ended</div><div style="color:#8b949e;font-size:.9rem;line-height:1.6;margin-bottom:24px">You were signed out because a new device logged in.<br>Maximum <strong style="color:#e6edf3">3 active sessions</strong> allowed at once.</div><button onclick="window.location.href='login.html'" style="width:100%;padding:13px;background:linear-gradient(135deg,#f78166,#ff9f6b);color:#0d1117;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;">Login Again →</button></div>`;
+  document.body.appendChild(overlay);
+  setTimeout(() => { window.location.href = "login.html"; }, 8000);
+}
+
+window.logout = async function() {
+  clearInterval(sessionWatchInterval);
+  await removeOwnSession();
+  await signOut(auth);
+  window.location.href = "login.html";
 };
+
+window.addEventListener("beforeunload", () => { removeOwnSession(); });
 
 window.downloadExcel = function() {
   const data = [["Employee","Days Worked","Reg Hrs","OT Hrs","Reg Pay (Rs.)","OT Pay (Rs.)","Total Salary (Rs.)"]];
@@ -296,6 +336,7 @@ function initApp() {
     else if(otField) otField.value = '';
   };
 
+  startSessionWatch();
   loadFromCloud();
 }
 
